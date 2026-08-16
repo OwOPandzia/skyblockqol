@@ -3,12 +3,9 @@ package barry.skyblockqol.client.feature;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.effect.MobEffects;
-import barry.skyblockqol.client.feature.Feature;
-import barry.skyblockqol.client.feature.FeatureRegistry;
 
 public class AntiBlindnessFeature {
 
-    // Swap this for your Feature/ModConfig toggle once wired up.
     public static volatile boolean enabled = true;
 
     public static void register() {
@@ -19,5 +16,14 @@ public class AntiBlindnessFeature {
                 v -> enabled = v
         ));
         ClientTickEvents.END_CLIENT_TICK.register(AntiBlindnessFeature::tick);
+    }
+
+    private static void tick(Minecraft client) {
+        if (!enabled) return;
+        if (client.player == null) return;
+
+        if (client.player.hasEffect(MobEffects.BLINDNESS)) {
+            client.player.removeEffect(MobEffects.BLINDNESS);
+        }
     }
 }

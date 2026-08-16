@@ -1,5 +1,6 @@
 package barry.skyblockqol.client;
 
+import barry.skyblockqol.SkyblockQOL;
 import barry.skyblockqol.client.feature.AntiBlindnessFeature;
 import barry.skyblockqol.client.feature.TrapperSolver;
 import barry.skyblockqol.client.gui.FeatureMenuScreen;
@@ -14,6 +15,9 @@ public class SkyblockQOLClient implements ClientModInitializer {
 
     private static KeyMapping openMenuKey;
 
+    private static final KeyMapping.Category CATEGORY =
+            KeyMapping.Category.register(SkyblockQOL.id("main"));
+
     @Override
     public void onInitializeClient() {
         AntiBlindnessFeature.register();
@@ -22,13 +26,13 @@ public class SkyblockQOLClient implements ClientModInitializer {
         openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.skyblockqol.open_menu",
                 GLFW.GLFW_KEY_RIGHT_BRACKET,
-                "category.skyblockqol"
+                CATEGORY
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKey.consumeClick()) {
-                if (client.screen == null) {
-                    client.setScreen(new FeatureMenuScreen());
+                if (client.screen == null) {           // <- verify field name
+                    client.setScreen(new FeatureMenuScreen()); // <- verify method name
                 }
             }
         });
