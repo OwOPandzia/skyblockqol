@@ -2,15 +2,36 @@ package barry.skyblockqol.client;
 
 import barry.skyblockqol.client.feature.AntiBlindnessFeature;
 import barry.skyblockqol.client.feature.TrapperSolver;
+import barry.skyblockqol.client.gui.FeatureMenuScreen;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.world.entity.Entity;
+import org.lwjgl.glfw.GLFW;
 
 public class SkyblockQOLClient implements ClientModInitializer {
+
+    private static KeyMapping openMenuKey;
 
     @Override
     public void onInitializeClient() {
         AntiBlindnessFeature.register();
         TrapperSolver.register();
+
+        openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key.skyblockqol.open_menu",
+                GLFW.GLFW_KEY_RIGHT_BRACKET,
+                "category.skyblockqol"
+        ));
+
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (openMenuKey.consumeClick()) {
+                if (client.screen == null) {
+                    client.setScreen(new FeatureMenuScreen());
+                }
+            }
+        });
     }
 
     // Kept here so LivingEntityRendererMixin doesn't need to change -

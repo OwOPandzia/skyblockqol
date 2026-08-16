@@ -1,5 +1,7 @@
 package barry.skyblockqol.client.feature;
 
+import barry.skyblockqol.client.feature.Feature;
+import barry.skyblockqol.client.feature.FeatureRegistry;
 import barry.skyblockqol.SkyblockQOL;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
@@ -68,6 +70,12 @@ public class TrapperSolver {
             Pattern.compile("You can find your (\\w+) animal near the (.+)\\.");
 
     public static void register() {
+        FeatureRegistry.register(new Feature(
+                "Trapper Solver",
+                "Automates Trevor's hunt: glows the target animal by tier, auto-warps to the clue area, clicks the accept prompt and calls Trevor when ready.",
+                () -> enabled,
+                v -> enabled = v
+        ));
         ClientTickEvents.END_CLIENT_TICK.register(TrapperSolver::tick);
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
