@@ -2,7 +2,7 @@ package barry.skyblockqol.client.gui;
 
 import barry.skyblockqol.client.feature.Feature;
 import barry.skyblockqol.client.feature.FeatureRegistry;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -12,15 +12,6 @@ import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Searchable menu listing every registered Feature with a toggle button.
- * Search matches against both name and description (see Feature#matches).
- *
- * NOTE: removeWidget(AbstractWidget) is assumed to exist on Screen in this
- * Mojmap version (it has for a long time). If it doesn't resolve, check
- * genSources for the current name - it may be removeWidget(GuiEventListener)
- * or similar.
- */
 public class FeatureMenuScreen extends Screen {
 
     private static final int LIST_TOP = 46;
@@ -36,22 +27,19 @@ public class FeatureMenuScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(graphics, mouseX, mouseY, partialTick);
-        super.render(graphics, mouseX, mouseY, partialTick);
+    protected void init() {
+        searchBox = new EditBox(this.font, this.width / 2 - ROW_WIDTH / 2, 20, ROW_WIDTH, 20,
+                Component.literal("Search"));
+        searchBox.setHint(Component.literal("Search features..."));
+        searchBox.setResponder(this::rebuildRows);
+        this.addRenderableWidget(searchBox);
 
-        graphics.drawCenteredString(this.font, this.title, this.width / 2, 6, 0xFFFFFF);
+        this.addRenderableWidget(Button.builder(Component.literal("Done"), b -> this.onClose())
+                .bounds(this.width / 2 - 50, this.height - 26, 100, 20)
+                .build());
 
-        int y = LIST_TOP;
-        for (Feature feature : currentMatches) {
-            graphics.drawCenteredString(this.font, feature.getDescription(), this.width / 2, y + 22, 0x999999);
-            y += ROW_HEIGHT;
-        }
-
-        if (currentMatches.isEmpty()) {
-            graphics.drawCenteredString(this.font, "No features match your search.",
-                    this.width / 2, LIST_TOP + 6, 0xAA5555);
-        }
+        rebuildRows(searchBox.getValue());
+        this.setInitialFocus(searchBox);
     }
 
     private void rebuildRows(String query) {
@@ -80,20 +68,19 @@ public class FeatureMenuScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        this.extractBackground(graphics, mouseX, mouseY, partialTick);
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
 
-        graphics.drawCenteredString(this.font, this.title, this.width / 2, 6, 0xFFFFFF);
+        graphics.centeredText(this.font, this.title, this.width / 2, 6, 0xFFFFFF); // verify name
 
         int y = LIST_TOP;
         for (Feature feature : currentMatches) {
-            graphics.drawCenteredString(this.font, feature.getDescription(), this.width / 2, y + 22, 0x999999);
+            graphics.centeredText(this.font, feature.getDescription(), this.width / 2, y + 22, 0x999999);
             y += ROW_HEIGHT;
         }
 
         if (currentMatches.isEmpty()) {
-            graphics.drawCenteredString(this.font, "No features match your search.",
+            graphics.centeredText(this.font, "No features match your search.",
                     this.width / 2, LIST_TOP + 6, 0xAA5555);
         }
     }

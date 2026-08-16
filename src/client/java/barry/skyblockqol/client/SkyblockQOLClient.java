@@ -31,8 +31,8 @@ public class SkyblockQOLClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKey.consumeClick()) {
-                if (client.screen == null) {           // <- verify field name
-                    client.setScreen(new FeatureMenuScreen()); // <- verify method name
+                if (client.gui.screen(); == activescreen) {
+                    client.setScreenAndShow(new FeatureMenuScreen());
                 }
             }
         });
