@@ -71,6 +71,7 @@ public class TrapperSolver {
 
     public static void register() {
         FeatureRegistry.register(new Feature(
+                "Trapper",
                 "Trapper Solver",
                 "Automates Trevor's hunt: glows the target animal by tier, auto-warps to the clue area, clicks the accept prompt and calls Trevor when ready.",
                 () -> enabled,

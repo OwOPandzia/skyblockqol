@@ -10,6 +10,7 @@ public class AntiBlindnessFeature {
 
     public static void register() {
         FeatureRegistry.register(new Feature(
+                "General",
                 "Anti Blindness",
                 "Automatically clears the Blindness effect Hypixel Skyblock applies while hunting.",
                 () -> enabled,
