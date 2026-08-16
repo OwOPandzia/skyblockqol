@@ -3,6 +3,7 @@
 ## Features
 
 -Trapper Solver
+-AntiBlindness
 
 ## License
 
