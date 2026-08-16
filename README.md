@@ -2,8 +2,8 @@
 
 ## Features
 
--Trapper Solver
--AntiBlindness
+#### Trapper Solver
+#### AntiBlindness
 
 ## License
 
