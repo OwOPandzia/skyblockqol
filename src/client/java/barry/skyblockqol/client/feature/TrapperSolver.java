@@ -69,6 +69,9 @@ public class TrapperSolver {
     private static final Pattern HUNT_CLUE_PATTERN =
             Pattern.compile("You can find your (\\w+) animal near the (.+)\\.");
 
+    private static final Pattern PELT_REWARD_PATTERN =
+            Pattern.compile("Killing the animal rewarded you with (\\d+) Pelts?");
+
     public static void register() {
         FeatureRegistry.register(new Feature(
                 "Trapper",
@@ -129,16 +132,16 @@ public class TrapperSolver {
                     || text.contains("Return to the Trapper soon"))) {
 
                 questCompleted = true;
-                //SkyblockQOL.LOGGER.info("Quest completion detected");
+
+                Matcher peltMatcher = PELT_REWARD_PATTERN.matcher(text);
+                if (peltMatcher.find()) {
+                    PeltTracker.addPelts(Integer.parseInt(peltMatcher.group(1)));
+                }
 
                 long elapsed = tickCounter - questAcceptedTick;
                 if (elapsed >= CALL_DELAY_TICKS) {
                     callTrevorNow(Minecraft.getInstance());
-                }/* else {
-                    SkyblockQOL.LOGGER.info(
-                            "Completed early, waiting {} more ticks before calling",
-                            CALL_DELAY_TICKS - elapsed);
-                }*/
+                }
             }
         });
     }

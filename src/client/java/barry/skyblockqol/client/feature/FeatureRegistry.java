@@ -1,5 +1,6 @@
 package barry.skyblockqol.client.feature;
 
+import java.util.Optional;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -29,5 +30,11 @@ public class FeatureRegistry {
                 .filter(f -> f.getCategory().equals(category))
                 .filter(f -> f.matches(query))
                 .collect(Collectors.toList());
+    }
+
+    public static Optional<Feature> find(String category, String name) {
+        return FEATURES.stream()
+                .filter(f -> f.getCategory().equals(category) && f.getName().equals(name))
+                .findFirst();
     }
 }

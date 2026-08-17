@@ -215,6 +215,17 @@ public class FeatureMenuScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+
+        if (event.button() == 2) {
+            for (SettingRow row : settingRows) {
+                if (row.contains(lastMouseX, lastMouseY) && row.setting().hasMiddleClickAction()) {
+                    row.setting().runMiddleClickAction();
+                    return true;
+                }
+            }
+            return super.mouseClicked(event, doubleClick);
+        }
+
         if (event.button() == 1) {
             for (FeatureRow row : featureRows) {
                 if (row.contains(lastMouseX, lastMouseY)) {
