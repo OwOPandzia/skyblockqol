@@ -3,7 +3,7 @@ package barry.skyblockqol.client.finder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -33,7 +33,11 @@ public class FinderExecutor {
             return Optional.empty();
         }
 
-        ResourceLocation id = ResourceLocation.tryParse(config.blockId);
+        // NOTE: assumes Identifier.tryParse(String) exists as the renamed equivalent
+        // of the old ResourceLocation.tryParse. If it doesn't resolve, fall back to:
+        //   String[] parts = config.blockId.split(":", 2);
+        //   Identifier id = Identifier.fromNamespaceAndPath(parts[0], parts[1]);
+        Identifier id = Identifier.tryParse(config.blockId);
         if (id == null) return Optional.empty();
         Block target = BuiltInRegistries.BLOCK.get(id);
         if (target == null) return Optional.empty();
@@ -158,7 +162,7 @@ public class FinderExecutor {
 
     private static boolean matchesMobType(LivingEntity entity, String entityTypeId) {
         if (entityTypeId == null) return false;
-        ResourceLocation id = ResourceLocation.tryParse(entityTypeId);
+        Identifier id = Identifier.tryParse(entityTypeId);
         if (id == null) return false;
         EntityType<?> target = BuiltInRegistries.ENTITY_TYPE.get(id);
         return target != null && entity.getType() == target;
