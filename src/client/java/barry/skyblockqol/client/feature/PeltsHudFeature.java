@@ -43,12 +43,12 @@ public class PeltsHudFeature {
     }
 
     private static void onHudRender(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
-        if (!hudEnabled || !TrapperSolver.enabled) return;
+        if (!hudEnabled) return;
         if (Minecraft.getInstance().player == null) return;
+        if (!TrapperSolver.isActive(Minecraft.getInstance())) return;
         drawHud(graphics, x, y, scale);
     }
 
-    /** Also used by PeltsHudPositionScreen for a live preview while editing. */
     public static void drawHud(GuiGraphicsExtractor graphics, int drawX, int drawY, float drawScale) {
         boolean session = sessionMode;
         int pelts = session ? PeltTracker.getSessionPelts() : PeltTracker.getAllTimePelts();
@@ -62,21 +62,19 @@ public class PeltsHudFeature {
         graphics.pose().translate((float) drawX, (float) drawY);
         graphics.pose().scale(drawScale, drawScale);
 
-        graphics.fill(0, 0, BOX_WIDTH, BOX_HEIGHT, 0x90000000); // verify fill(...) name
-
         int ty = 4;
-        graphics.text(Minecraft.getInstance().font, header, 6, ty, 0xFFFFFF55);
+        graphics.text(Minecraft.getInstance().font, header, 6, ty, 0xFFFFFF55, true);
         ty += lineHeight;
-        graphics.text(Minecraft.getInstance().font, "Pelts: " + pelts, 6, ty, 0xFFFFFFFF);
+        graphics.text(Minecraft.getInstance().font, "Pelts: " + pelts, 6, ty, 0xFFFFFFFF, true);
         ty += lineHeight;
 
         String rateText = String.format("%.1f/h", rate);
         if (PeltTracker.isPaused()) rateText += " (paused)";
-        graphics.text(Minecraft.getInstance().font, rateText, 6, ty, 0xFFFFFFFF);
+        graphics.text(Minecraft.getInstance().font, rateText, 6, ty, 0xFFFFFFFF, true);
         ty += lineHeight;
 
         graphics.text(Minecraft.getInstance().font, "Time: " + PeltTracker.formatDuration(activeMillis),
-                6, ty, 0xFFFFFFFF);
+                6, ty, 0xFFFFFFFF, true);
 
         graphics.pose().popMatrix();
     }

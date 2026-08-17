@@ -9,7 +9,8 @@ public class FeatureSetting {
     private final String description;
     private final BooleanSupplier getter;
     private final Consumer<Boolean> setter;
-    private final Runnable middleClickAction; // nullable
+    private final Runnable middleClickAction;
+    private String configKey;
 
     public FeatureSetting(String name, String description, BooleanSupplier getter, Consumer<Boolean> setter) {
         this(name, description, getter, setter, null);
@@ -24,10 +25,23 @@ public class FeatureSetting {
         this.middleClickAction = middleClickAction;
     }
 
+    /** Called by Feature#withSetting once the parent's config key is known. */
+    void bindConfigKey(String parentKey) {
+        this.configKey = parentKey + "::" + name;
+        if (FeatureConfig.has(configKey)) {
+            setter.accept(FeatureConfig.get(configKey, getter.getAsBoolean()));
+        }
+    }
+
     public String getName() { return name; }
     public String getDescription() { return description; }
     public boolean isEnabled() { return getter.getAsBoolean(); }
-    public void toggle() { setter.accept(!isEnabled()); }
+
+    public void toggle() {
+        boolean newValue = !isEnabled();
+        setter.accept(newValue);
+        if (configKey != null) FeatureConfig.set(configKey, newValue);
+    }
 
     public boolean hasMiddleClickAction() { return middleClickAction != null; }
     public void runMiddleClickAction() { if (middleClickAction != null) middleClickAction.run(); }

@@ -3,6 +3,7 @@ package barry.skyblockqol.client.feature;
 import barry.skyblockqol.SkyblockQOL;
 import com.google.gson.Gson;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.Minecraft;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -48,7 +49,10 @@ public class PeltTracker {
         long delta = now - lastTickMillis;
         lastTickMillis = now;
 
-        if (now - lastPeltMillis <= PAUSE_AFTER_MS) {
+        boolean withinPeltWindow = lastPeltMillis > 0 && now - lastPeltMillis <= PAUSE_AFTER_MS;
+        boolean active = TrapperSolver.isActive(Minecraft.getInstance()) && withinPeltWindow;
+
+        if (active) {
             sessionActiveMillis += delta;
             allTimeActiveMillis += delta;
         }
@@ -60,7 +64,9 @@ public class PeltTracker {
     }
 
     public static boolean isPaused() {
-        return System.currentTimeMillis() - lastPeltMillis > PAUSE_AFTER_MS;
+        if (lastPeltMillis <= 0) return true;
+        return !TrapperSolver.isActive(Minecraft.getInstance())
+                || System.currentTimeMillis() - lastPeltMillis > PAUSE_AFTER_MS;
     }
 
     public static int getSessionPelts() { return sessionPelts; }
