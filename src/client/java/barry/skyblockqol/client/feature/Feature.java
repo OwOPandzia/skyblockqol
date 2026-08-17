@@ -13,6 +13,7 @@ public class Feature {
     private final BooleanSupplier getter;
     private final Consumer<Boolean> setter;
     private final List<FeatureSetting> settings = new ArrayList<>();
+    private Runnable onConfigure;
     private final String configKey;
 
     public Feature(String category, String name, String description, BooleanSupplier getter, Consumer<Boolean> setter) {
@@ -47,6 +48,10 @@ public class Feature {
     }
 
     public List<FeatureSetting> getSettings() { return settings; }
+
+    public void setOnConfigure(Runnable onConfigure) { this.onConfigure = onConfigure; }
+    public Runnable getOnConfigure() { return onConfigure; }
+    public boolean hasConfigureAction() { return onConfigure != null; }
 
     public boolean matches(String query) {
         if (query == null || query.isBlank()) return true;

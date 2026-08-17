@@ -38,6 +38,7 @@ public class FeatureMenuScreen extends Screen {
 
     private final List<FeatureRow> featureRows = new ArrayList<>();
     private final List<SettingRow> settingRows = new ArrayList<>();
+    private final List<GearRow> gearRows = new ArrayList<>();
 
     private Object hoverTarget;
     private long hoverStartMillis;
@@ -70,6 +71,7 @@ public class FeatureMenuScreen extends Screen {
         this.lastMouseY = mouseY;
         featureRows.clear();
         settingRows.clear();
+        gearRows.clear();
         hoverFoundThisFrame = false;
 
         String query = searchBox != null ? searchBox.getValue() : "";
@@ -129,6 +131,14 @@ public class FeatureMenuScreen extends Screen {
             String arrow = feature.getSettings().isEmpty() ? "" : (expanded ? "  \u25BE" : "  \u25B8");
             graphics.centeredText(this.font, feature.getName() + arrow,
                     x + COLUMN_WIDTH / 2, rowY + ROW_HEIGHT / 2 - 4, COLOR_TEXT);
+
+            if (feature.hasConfigureAction()) {
+                int gearSize = 16;
+                int gearX = x + COLUMN_WIDTH - gearSize - 4;
+                int gearY = rowY + (ROW_HEIGHT - gearSize) / 2;
+                graphics.text(this.font, "\u2699", gearX, gearY, COLOR_TEXT);
+                gearRows.add(new GearRow(feature, gearX, gearY, gearSize, gearSize));
+            }
 
             featureRows.add(new FeatureRow(feature, x, rowY, COLUMN_WIDTH, ROW_HEIGHT));
             rowY += ROW_HEIGHT;
@@ -268,6 +278,12 @@ public class FeatureMenuScreen extends Screen {
     }
 
     private record SettingRow(FeatureSetting setting, int x, int y, int w, int h) {
+        boolean contains(int mx, int my) {
+            return mx >= x && mx < x + w && my >= y && my < y + h;
+        }
+    }
+
+    private record GearRow(Feature feature, int x, int y, int w, int h) {
         boolean contains(int mx, int my) {
             return mx >= x && mx < x + w && my >= y && my < y + h;
         }
