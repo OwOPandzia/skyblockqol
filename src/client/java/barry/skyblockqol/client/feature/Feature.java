@@ -13,7 +13,6 @@ public class Feature {
     private final BooleanSupplier getter;
     private final Consumer<Boolean> setter;
     private final List<FeatureSetting> settings = new ArrayList<>();
-    private final String configKey;
 
     public Feature(String category, String name, String description, BooleanSupplier getter, Consumer<Boolean> setter) {
         this.category = category;
