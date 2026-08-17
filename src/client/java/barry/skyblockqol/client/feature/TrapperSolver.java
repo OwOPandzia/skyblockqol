@@ -70,7 +70,7 @@ public class TrapperSolver {
             Pattern.compile("You can find your (\\w+) animal near the (.+)\\.");
 
     private static final Pattern PELT_REWARD_PATTERN =
-            Pattern.compile("Killing the animal rewarded you (\\d+) pelts");
+            Pattern.compile("Killing the animal rewarded you with (\\d+) Pelts?");
 
     public static void register() {
         FeatureRegistry.register(new Feature(
@@ -85,7 +85,9 @@ public class TrapperSolver {
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (!enabled || overlay) return;
             if (!isInFarmingIslands(Minecraft.getInstance())) return;
+
             String text = stripFormatting(message.getString());
+
             if (text.contains("I couldn't locate any animals")) {
                 //SkyblockQOL.LOGGER.info("Trevor found no animals, retrying /call trevor in 5s");
                 retryPending = true;
@@ -125,16 +127,16 @@ public class TrapperSolver {
                 return;
             }
 
-            Matcher peltMatcher = PELT_REWARD_PATTERN.matcher(text);
-            if (peltMatcher.find()) {
-                PeltTracker.addPelts(Integer.parseInt(peltMatcher.group(1)));
-            }
-
             if (questActive && !questCompleted
                     && (text.contains("Killing the animal rewarded you")
                     || text.contains("Return to the Trapper soon"))) {
 
                 questCompleted = true;
+
+                Matcher peltMatcher = PELT_REWARD_PATTERN.matcher(text);
+                if (peltMatcher.find()) {
+                    PeltTracker.addPelts(Integer.parseInt(peltMatcher.group(1)));
+                }
 
                 long elapsed = tickCounter - questAcceptedTick;
                 if (elapsed >= CALL_DELAY_TICKS) {
@@ -171,10 +173,6 @@ public class TrapperSolver {
         }
 
         return false;
-    }
-
-    public static boolean isActive(Minecraft client) {
-        return enabled && isInFarmingIslands(client);
     }
 
     private static GlowColor matchCategoryColor(String category) {
