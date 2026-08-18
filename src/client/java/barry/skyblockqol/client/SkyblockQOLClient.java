@@ -2,6 +2,7 @@ package barry.skyblockqol.client;
 
 import barry.skyblockqol.SkyblockQOL;
 import barry.skyblockqol.client.feature.AntiBlindnessFeature;
+import barry.skyblockqol.client.feature.EntityNbtDumper;
 import barry.skyblockqol.client.feature.PeltsHudFeature;
 import barry.skyblockqol.client.feature.TrapperSolver;
 import barry.skyblockqol.client.gui.FeatureMenuScreen;
@@ -16,7 +17,9 @@ public class SkyblockQOLClient implements ClientModInitializer {
 
     private static KeyMapping openMenuKey;
 
-    private static final KeyMapping.Category CATEGORY =
+    // Made public so feature classes (e.g. EntityNbtDumper) can register their own
+    // keybinds under the same "SkyblockQOL" category instead of each creating one.
+    public static final KeyMapping.Category CATEGORY =
             KeyMapping.Category.register(SkyblockQOL.id("main"));
 
     @Override
@@ -24,6 +27,7 @@ public class SkyblockQOLClient implements ClientModInitializer {
         AntiBlindnessFeature.register();
         TrapperSolver.register();
         PeltsHudFeature.register();
+        EntityNbtDumper.register();
 
         openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.skyblockqol.open_menu",

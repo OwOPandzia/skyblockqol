@@ -3,11 +3,16 @@ package barry.skyblockqol.client.gui;
 import barry.skyblockqol.client.feature.Feature;
 import barry.skyblockqol.client.feature.FeatureRegistry;
 import barry.skyblockqol.client.feature.FeatureSetting;
+import barry.skyblockqol.client.feature.KeybindSetting;
+import barry.skyblockqol.client.feature.RangeSetting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.*;
 
@@ -26,9 +31,9 @@ public class FeatureMenuScreen extends Screen {
     private static final int COLOR_ROW_ON = 0xE62E7BD6;
     private static final int COLOR_SUBROW_BG = 0xE61F1F1F;
     private static final int COLOR_ROW_HOVER = 0x33FFFFFF;
+    private static final int COLOR_EDITING = 0xE6D6A62E;
     private static final int COLOR_TEXT = 0xFFFFFFFF;
 
-    // Persists across menu re-opens for the session, like most clickgui menus.
     private static final Set<Feature> EXPANDED = Collections.newSetFromMap(new IdentityHashMap<>());
 
     private EditBox searchBox;
@@ -39,6 +44,15 @@ public class FeatureMenuScreen extends Screen {
     private final List<FeatureRow> featureRows = new ArrayList<>();
     private final List<SettingRow> settingRows = new ArrayList<>();
     private final List<GearRow> gearRows = new ArrayList<>();
+    private final List<KeybindRow> keybindRows = new ArrayList<>();
+    private final List<RangeRow> rangeRows = new ArrayList<>();
+
+    // Non-null while waiting for the next key press to bind to a KeybindSetting.
+    private KeybindSetting listeningKeybind;
+
+    // Non-null while a RangeSetting's value is being typed inline.
+    private RangeSetting editingRange;
+    private String editBuffer = "";
 
     private Object hoverTarget;
     private long hoverStartMillis;
@@ -64,6 +78,13 @@ public class FeatureMenuScreen extends Screen {
     }
 
     @Override
+    public void removed() {
+        listeningKeybind = null;
+        editingRange = null;
+        super.removed();
+    }
+
+    @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
 
@@ -72,6 +93,8 @@ public class FeatureMenuScreen extends Screen {
         featureRows.clear();
         settingRows.clear();
         gearRows.clear();
+        keybindRows.clear();
+        rangeRows.clear();
         hoverFoundThisFrame = false;
 
         String query = searchBox != null ? searchBox.getValue() : "";
@@ -111,7 +134,6 @@ public class FeatureMenuScreen extends Screen {
     private void drawColumn(GuiGraphicsExtractor graphics, String category, List<Feature> features,
                             int x, int y, int mouseX, int mouseY) {
 
-        // fill(x1, y1, x2, y2, color) - verify name if this doesn't compile.
         graphics.fill(x, y, x + COLUMN_WIDTH, y + HEADER_HEIGHT, COLOR_HEADER_BG);
         graphics.centeredText(this.font, category, x + COLUMN_WIDTH / 2, y + HEADER_HEIGHT / 2 - 4, COLOR_TEXT);
 
@@ -127,8 +149,9 @@ public class FeatureMenuScreen extends Screen {
                 registerHover(feature, feature.getName(), feature.getDescription());
             }
 
+            boolean expandable = feature.hasExpandableContent();
             boolean expanded = EXPANDED.contains(feature);
-            String arrow = feature.getSettings().isEmpty() ? "" : (expanded ? "  \u25BE" : "  \u25B8");
+            String arrow = expandable ? (expanded ? "  \u25BE" : "  \u25B8") : "";
             graphics.centeredText(this.font, feature.getName() + arrow,
                     x + COLUMN_WIDTH / 2, rowY + ROW_HEIGHT / 2 - 4, COLOR_TEXT);
 
@@ -144,14 +167,13 @@ public class FeatureMenuScreen extends Screen {
             rowY += ROW_HEIGHT;
 
             if (expanded) {
-                List<FeatureSetting> settings = feature.getSettings();
-                if (settings.isEmpty()) {
+                if (!expandable) {
                     graphics.fill(x, rowY, x + COLUMN_WIDTH, rowY + SUBROW_HEIGHT, COLOR_SUBROW_BG);
                     graphics.centeredText(this.font, "No additional settings",
                             x + COLUMN_WIDTH / 2, rowY + SUBROW_HEIGHT / 2 - 4, 0xFF888888);
                     rowY += SUBROW_HEIGHT;
                 } else {
-                    for (FeatureSetting setting : settings) {
+                    for (FeatureSetting setting : feature.getSettings()) {
                         boolean subHovered = mouseX >= x && mouseX < x + COLUMN_WIDTH
                                 && mouseY >= rowY && mouseY < rowY + SUBROW_HEIGHT;
 
@@ -165,6 +187,48 @@ public class FeatureMenuScreen extends Screen {
                         graphics.text(this.font, "  " + setting.getName(), x + 10, rowY + SUBROW_HEIGHT / 2 - 4, COLOR_TEXT);
 
                         settingRows.add(new SettingRow(setting, x, rowY, COLUMN_WIDTH, SUBROW_HEIGHT));
+                        rowY += SUBROW_HEIGHT;
+                    }
+
+                    for (KeybindSetting keybind : feature.getKeybindSettings()) {
+                        boolean subHovered = mouseX >= x && mouseX < x + COLUMN_WIDTH
+                                && mouseY >= rowY && mouseY < rowY + SUBROW_HEIGHT;
+                        boolean listening = listeningKeybind == keybind;
+
+                        int subBg = listening ? COLOR_EDITING : COLOR_SUBROW_BG;
+                        graphics.fill(x, rowY, x + COLUMN_WIDTH, rowY + SUBROW_HEIGHT, subBg);
+                        if (subHovered && !listening) {
+                            graphics.fill(x, rowY, x + COLUMN_WIDTH, rowY + SUBROW_HEIGHT, COLOR_ROW_HOVER);
+                            registerHover(keybind, keybind.getName(), keybind.getDescription());
+                        }
+
+                        String label = listening
+                                ? "  " + keybind.getName() + ": Press a key..."
+                                : "  " + keybind.getName() + ": " + keybind.getKeyDisplayName();
+                        graphics.text(this.font, label, x + 10, rowY + SUBROW_HEIGHT / 2 - 4, COLOR_TEXT);
+
+                        keybindRows.add(new KeybindRow(keybind, x, rowY, COLUMN_WIDTH, SUBROW_HEIGHT));
+                        rowY += SUBROW_HEIGHT;
+                    }
+
+                    for (RangeSetting range : feature.getRangeSettings()) {
+                        boolean subHovered = mouseX >= x && mouseX < x + COLUMN_WIDTH
+                                && mouseY >= rowY && mouseY < rowY + SUBROW_HEIGHT;
+                        boolean editing = editingRange == range;
+
+                        int subBg = editing ? COLOR_EDITING : COLOR_SUBROW_BG;
+                        graphics.fill(x, rowY, x + COLUMN_WIDTH, rowY + SUBROW_HEIGHT, subBg);
+                        if (subHovered && !editing) {
+                            graphics.fill(x, rowY, x + COLUMN_WIDTH, rowY + SUBROW_HEIGHT, COLOR_ROW_HOVER);
+                            registerHover(range, range.getName(), range.getDescription());
+                        }
+
+                        String label = editing
+                                ? "  " + range.getName() + ": " + editBuffer + "_"
+                                : "  " + range.getName() + ": " + (int) range.getValue();
+                        graphics.text(this.font, label, x + 10, rowY + SUBROW_HEIGHT / 2 - 4, COLOR_TEXT);
+
+                        rangeRows.add(new RangeRow(range, x, rowY, COLUMN_WIDTH, SUBROW_HEIGHT));
                         rowY += SUBROW_HEIGHT;
                     }
                 }
@@ -186,7 +250,7 @@ public class FeatureMenuScreen extends Screen {
         int maxTextWidth = 180;
         List<String> lines = wrapText(description, maxTextWidth);
 
-        int lineHeight = this.font.lineHeight + 2; // verify field name if this doesn't compile
+        int lineHeight = this.font.lineHeight + 2;
         int contentWidth = this.font.width(title);
         for (String line : lines) contentWidth = Math.max(contentWidth, this.font.width(line));
         int boxWidth = contentWidth + 12;
@@ -224,12 +288,74 @@ public class FeatureMenuScreen extends Screen {
     }
 
     @Override
+    public boolean keyPressed(KeyEvent event) {
+        if (listeningKeybind != null) {
+            int bound = (event.key() == GLFW.GLFW_KEY_ESCAPE) ? KeybindSetting.UNBOUND : event.key();
+            listeningKeybind.setKeyCode(bound);
+            listeningKeybind = null;
+            return true;
+        }
+
+        if (editingRange != null) {
+            if (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER) {
+                confirmRangeEdit();
+            } else if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+                editingRange = null;
+                editBuffer = "";
+            } else if (event.key() == GLFW.GLFW_KEY_BACKSPACE && !editBuffer.isEmpty()) {
+                editBuffer = editBuffer.substring(0, editBuffer.length() - 1);
+            }
+            return true; // consume everything else too - don't let it reach the search box
+        }
+
+        return super.keyPressed(event);
+    }
+
+    @Override
+    public boolean charTyped(CharacterEvent event) {
+        if (editingRange != null) {
+            char c = (char) event.codepoint();
+            if (Character.isDigit(c) || c == '.') {
+                editBuffer += c;
+            }
+            return true;
+        }
+        return super.charTyped(event);
+    }
+
+    private void confirmRangeEdit() {
+        try {
+            if (!editBuffer.isBlank()) {
+                editingRange.setValue(Double.parseDouble(editBuffer));
+            }
+        } catch (NumberFormatException ignored) {
+            // leave the value unchanged on garbage input
+        }
+        editingRange = null;
+        editBuffer = "";
+    }
+
+    @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+
+        // Any click while editing a range value confirms it first, so the click
+        // underneath doesn't also fire on the row it lands on.
+        if (editingRange != null) {
+            confirmRangeEdit();
+            return true;
+        }
 
         if (event.button() == 2) {
             for (SettingRow row : settingRows) {
                 if (row.contains(lastMouseX, lastMouseY) && row.setting().hasMiddleClickAction()) {
                     row.setting().runMiddleClickAction();
+                    return true;
+                }
+            }
+            for (RangeRow row : rangeRows) {
+                if (row.contains(lastMouseX, lastMouseY)) {
+                    editingRange = row.range();
+                    editBuffer = String.valueOf((int) row.range().getValue());
                     return true;
                 }
             }
@@ -249,6 +375,20 @@ public class FeatureMenuScreen extends Screen {
         }
 
         if (event.button() == 0) {
+            for (KeybindRow row : keybindRows) {
+                if (row.contains(lastMouseX, lastMouseY)) {
+                    listeningKeybind = row.keybind();
+                    return true;
+                }
+            }
+
+            for (GearRow row : gearRows) {
+                if (row.contains(lastMouseX, lastMouseY)) {
+                    row.feature().runConfigureAction();
+                    return true;
+                }
+            }
+
             for (SettingRow row : settingRows) {
                 if (row.contains(lastMouseX, lastMouseY)) {
                     row.setting().toggle();
@@ -272,20 +412,22 @@ public class FeatureMenuScreen extends Screen {
     }
 
     private record FeatureRow(Feature feature, int x, int y, int w, int h) {
-        boolean contains(int mx, int my) {
-            return mx >= x && mx < x + w && my >= y && my < y + h;
-        }
+        boolean contains(int mx, int my) { return mx >= x && mx < x + w && my >= y && my < y + h; }
     }
 
     private record SettingRow(FeatureSetting setting, int x, int y, int w, int h) {
-        boolean contains(int mx, int my) {
-            return mx >= x && mx < x + w && my >= y && my < y + h;
-        }
+        boolean contains(int mx, int my) { return mx >= x && mx < x + w && my >= y && my < y + h; }
     }
 
     private record GearRow(Feature feature, int x, int y, int w, int h) {
-        boolean contains(int mx, int my) {
-            return mx >= x && mx < x + w && my >= y && my < y + h;
-        }
+        boolean contains(int mx, int my) { return mx >= x && mx < x + w && my >= y && my < y + h; }
+    }
+
+    private record KeybindRow(KeybindSetting keybind, int x, int y, int w, int h) {
+        boolean contains(int mx, int my) { return mx >= x && mx < x + w && my >= y && my < y + h; }
+    }
+
+    private record RangeRow(RangeSetting range, int x, int y, int w, int h) {
+        boolean contains(int mx, int my) { return mx >= x && mx < x + w && my >= y && my < y + h; }
     }
 }
