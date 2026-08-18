@@ -1,10 +1,7 @@
 package barry.skyblockqol.client;
 
 import barry.skyblockqol.SkyblockQOL;
-import barry.skyblockqol.client.feature.AntiBlindnessFeature;
-import barry.skyblockqol.client.feature.EntityNbtDumper;
-import barry.skyblockqol.client.feature.PeltsHudFeature;
-import barry.skyblockqol.client.feature.TrapperSolver;
+import barry.skyblockqol.client.feature.*;
 import barry.skyblockqol.client.gui.FeatureMenuScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -28,6 +25,8 @@ public class SkyblockQOLClient implements ClientModInitializer {
         TrapperSolver.register();
         PeltsHudFeature.register();
         EntityNbtDumper.register();
+        FastCakeFeature.register();
+        CakeDebugFeature.register();
 
         openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.skyblockqol.open_menu",

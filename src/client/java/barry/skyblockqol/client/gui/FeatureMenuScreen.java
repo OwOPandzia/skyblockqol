@@ -18,12 +18,13 @@ import java.util.*;
 
 public class FeatureMenuScreen extends Screen {
 
-    private static final int COLUMN_WIDTH = 200;
-    private static final int COLUMN_GAP = 24;
-    private static final int HEADER_HEIGHT = 32;
-    private static final int ROW_HEIGHT = 28;
-    private static final int SUBROW_HEIGHT = 24;
-    private static final int TOP_MARGIN = 40;
+    private static final int COLUMN_WIDTH = 150;
+    private static final int COLUMN_GAP = 14;
+    private static final int HEADER_HEIGHT = 24;
+    private static final int ROW_HEIGHT = 20;
+    private static final int SUBROW_HEIGHT = 18;
+    private static final int TOP_MARGIN = 24;
+    private static final int LEFT_MARGIN = 14;
     private static final long HOVER_DELAY_MS = 1000;
 
     private static final int COLOR_HEADER_BG = 0xE6101010;
@@ -74,7 +75,11 @@ public class FeatureMenuScreen extends Screen {
                 Component.literal("Search"));
         searchBox.setHint(Component.literal("Search here..."));
         this.addRenderableWidget(searchBox);
-        this.setInitialFocus(searchBox);
+        // Deliberately NOT calling setInitialFocus(searchBox) here - that
+        // was capturing every keystroke the instant the menu opened
+        // (including keys meant as mod keybinds while the menu happens to
+        // be up, or just typing that wasn't meant for search). Click the
+        // search box to focus it, same as any other text field.
     }
 
     @Override
@@ -106,9 +111,12 @@ public class FeatureMenuScreen extends Screen {
             }
         }
 
-        int totalWidth = visibleCategories.size() * COLUMN_WIDTH
-                + Math.max(0, visibleCategories.size() - 1) * COLUMN_GAP;
-        int startX = this.width / 2 - totalWidth / 2;
+        // Push "Dev" to the far right regardless of registration order.
+        // List.sort is stable, so this only moves "Dev" entries and leaves
+        // every other category's relative order untouched.
+        visibleCategories.sort(Comparator.comparingInt(c -> "Dev".equals(c) ? 1 : 0));
+
+        int startX = LEFT_MARGIN;
 
         int colIndex = 0;
         for (String category : visibleCategories) {
@@ -308,6 +316,13 @@ public class FeatureMenuScreen extends Screen {
             return true; // consume everything else too - don't let it reach the search box
         }
 
+        // If the search box isn't focused, Escape should close the menu
+        // like vanilla screens do instead of doing nothing.
+        if (event.key() == GLFW.GLFW_KEY_ESCAPE && (searchBox == null || !searchBox.isFocused())) {
+            this.onClose();
+            return true;
+        }
+
         return super.keyPressed(event);
     }
 
@@ -401,6 +416,10 @@ public class FeatureMenuScreen extends Screen {
                     return true;
                 }
             }
+
+            // A click that didn't land on any custom row (including on the
+            // search box itself) falls through to Screen's default handling,
+            // which is what focuses/unfocuses the search EditBox on click.
         }
 
         return super.mouseClicked(event, doubleClick);

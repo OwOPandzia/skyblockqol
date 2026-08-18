@@ -48,7 +48,7 @@ public class EntityNbtDumper {
 
     public static void register() {
         FeatureRegistry.register(new Feature(
-                "Utility",
+                "Dev",
                 "Entity NBT Dumper",
                 "Dumps NBT for every non-player entity in range to your clipboard.",
                 () -> enabled,
