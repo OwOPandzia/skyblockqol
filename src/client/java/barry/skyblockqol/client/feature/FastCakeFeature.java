@@ -29,25 +29,23 @@ import java.util.regex.Pattern;
  * cake in range, one every CLICK_INTERVAL_TICKS, until none are left.
  * Press the key again while running to stop early.
  *
- * Big Yum effect tracking has two known issues being worked through:
+ * Big Yum effect tracking history, for context on the parsing below:
  *
- * 1. RACE CONDITION (fixed here): clicking finishes client-side in ~2
- *    seconds for 20 cakes, but the server's "Big Yum" chat confirmations
- *    trickle back more slowly. Evaluating "missing effects" the instant
- *    local clicking finishes catches the run mid-flight. Fixed by waiting
- *    REPORT_DELAY_TICKS after the last click before reporting.
+ * 1. RACE CONDITION (fixed, confirmed working): clicking finished
+ *    client-side faster than the server's chat confirmations arrived.
+ *    Fixed with REPORT_DELAY_TICKS.
  *
- * 2. TRACKING NOT REGISTERING (unresolved, being diagnosed): even accounting
- *    for #1, effects that had already printed to chat before the report
- *    fired still showed as "missing" - meaning sessionSeenEffects wasn't
- *    populated even though ClientReceiveMessageEvents.GAME is the same
- *    event TrapperSolver already uses successfully for similar Hypixel
- *    broadcast-style messages. Rather than guess at another regex/event
- *    change, this now logs (to the log file/console only, NOT chat) the
- *    raw and stripped text of every message containing "yum"
- *    (case-insensitive) so we can see exactly what's arriving and why the
- *    regex isn't matching it, next time this runs. Check the log after a
- *    run for lines starting with "[FastCake DEBUG]".
+ * 2. TRACKING NOT MATCHING (root cause found via codepoint dump): the
+ *    string wasn't "+1 Treasure Chance" as it visually appeared in the
+ *    log - it was "+1<PUA glyph> Treasure Chance", where <PUA glyph> is a
+ *    Unicode Private Use Area character (a different one per stat, e.g.
+ *    U+E025 for Treasure Chance, U+E054 for Foraging Fortune - almost
+ *    certainly Hypixel's custom per-stat icon font glyphs) sitting between
+ *    the number and the space. No whitespace-only fix could ever have
+ *    caught this since it isn't whitespace. Fixed by stripping any
+ *    character in the Unicode "Private Use" category (\p{Co}) out of the
+ *    string entirely, the same way stripFormatting already strips literal
+ *    section-sign color codes.
  */
 public class FastCakeFeature {
 
@@ -65,7 +63,7 @@ public class FastCakeFeature {
     private static final long CLICK_INTERVAL_TICKS = 2; // 0.1s at 20 TPS
 
     // Grace period after the last click before checking which effects
-    // showed up - gives the server's chat confirmations time to arrive.
+    // showed up - confirmed working, no late-arriving messages after report.
     private static final long REPORT_DELAY_TICKS = 40; // 2s at 20 TPS
 
     private static boolean cakeKeyWasDown = false;
@@ -80,10 +78,12 @@ public class FastCakeFeature {
     // UUIDs (as strings) of cakes already clicked this session.
     private static final Set<String> clickedCakes = new HashSet<>();
 
-    // "Big Yum! You refresh +N <Effect Name> for 48 hours!" - captures the
-    // effect name, stripped of the leading amount.
+    // "Big Yum! You refresh +N <Effect Name> for 48 hours!" - matched
+    // against text that's already had icon glyphs and formatting stripped
+    // and whitespace normalized. See class javadoc for why this ended up
+    // needing three layers of cleanup instead of a plain literal match.
     private static final Pattern BIG_YUM_PATTERN =
-            Pattern.compile("Big Yum! You refresh \\+\\d+ (.+) for 48 hours!");
+            Pattern.compile("Big\\s+Yum!\\s+You\\s+refresh\\s+\\+\\d+\\s+(.+?)\\s+for\\s+48\\s+hours!");
 
     // Every distinct effect name ever seen, across all runs - persisted.
     // Not a hardcoded "complete" list - grows automatically the first time
@@ -141,22 +141,13 @@ public class FastCakeFeature {
             reportPending = false;
         });
 
-        // Plain (non-cancelable) GAME listener - the same event TrapperSolver
-        // already uses successfully for this style of Hypixel chat line.
+        // Plain (non-cancelable) GAME listener - confirmed firing reliably.
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (overlay) return;
 
-            String raw = message.getString();
-            String text = stripFormatting(raw);
+            String cleaned = normalizeWhitespace(stripIcons(stripFormatting(message.getString())));
 
-            // Diagnostic only - console/log file, never chat. Fires on ANY
-            // message that loosely mentions "yum" so we can see the exact
-            // text even if BIG_YUM_PATTERN below fails to match it.
-            if (text.toLowerCase(Locale.ROOT).contains("yum")) {
-                SkyblockQOL.LOGGER.info("[FastCake DEBUG] raw='{}' stripped='{}'", raw, text);
-            }
-
-            Matcher matcher = BIG_YUM_PATTERN.matcher(text);
+            Matcher matcher = BIG_YUM_PATTERN.matcher(cleaned);
             if (!matcher.find()) return;
 
             String effect = matcher.group(1).trim();
@@ -169,6 +160,16 @@ public class FastCakeFeature {
 
     private static String stripFormatting(String text) {
         return text.replaceAll("§[0-9A-FK-ORa-fk-or]", "");
+    }
+
+    /** Removes Unicode Private Use Area characters - Hypixel's custom per-stat icon glyphs sit inline in this message, not just in the font. */
+    private static String stripIcons(String text) {
+        return text.replaceAll("\\p{Co}", "");
+    }
+
+    /** Collapses any run of Unicode space-separator characters to a single plain ASCII space. */
+    private static String normalizeWhitespace(String text) {
+        return text.replaceAll("\\p{Zs}+", " ").trim();
     }
 
     private static void tick(Minecraft client) {
