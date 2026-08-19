@@ -27,6 +27,7 @@ public class SkyblockQOLClient implements ClientModInitializer {
         EntityNbtDumper.register();
         FastCakeFeature.register();
         CakeDebugFeature.register();
+        StarMobGlowFeature.register();
 
         openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.skyblockqol.open_menu",
@@ -46,6 +47,9 @@ public class SkyblockQOLClient implements ClientModInitializer {
     // Kept here so LivingEntityRendererMixin doesn't need to change -
     // delegates straight through to the feature that owns the real state.
     public static GlowColor getGlowColor(Entity entity) {
+        if (StarMobGlowFeature.shouldGlow(entity)) {
+            return GlowColor.ORANGE;
+        }
         TrapperSolver.GlowColor color = TrapperSolver.getGlowColor(entity);
         return GlowColor.valueOf(color.name());
     }
@@ -56,7 +60,8 @@ public class SkyblockQOLClient implements ClientModInitializer {
         GREEN(0xFF55FF55),
         BLUE(0xFF5555FF),
         PURPLE(0xFFAA55FF),
-        YELLOW(0xFFFFFF55);
+        YELLOW(0xFFFFFF55),
+        ORANGE(0xFFFF9900);   // <-- new
 
         private final int color;
         GlowColor(int color) { this.color = color; }

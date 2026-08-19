@@ -91,7 +91,7 @@ public class CakeDebugFeature {
 
     private static void tick(Minecraft client) {
         if (!enabled || debugKeyCode == GLFW.GLFW_KEY_UNKNOWN
-                || client.gui.screen() instanceof barry.skyblockqol.client.gui.FeatureMenuScreen) {
+                || client.gui.screen() != null) {
             debugKeyWasDown = false;
             return;
         }

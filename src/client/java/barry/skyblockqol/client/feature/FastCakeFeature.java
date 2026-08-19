@@ -181,7 +181,7 @@ public class FastCakeFeature {
         }
 
         if (!enabled || cakeKeyCode == GLFW.GLFW_KEY_UNKNOWN
-                || client.gui.screen() instanceof barry.skyblockqol.client.gui.FeatureMenuScreen) {
+                || client.gui.screen() != null) {
             cakeKeyWasDown = false;
             return;
         }

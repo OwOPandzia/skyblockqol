@@ -71,7 +71,7 @@ public class EntityNbtDumper {
 
     private static void tick(Minecraft client) {
         if (!enabled || dumpKeyCode == GLFW.GLFW_KEY_UNKNOWN
-                || client.gui.screen() instanceof barry.skyblockqol.client.gui.FeatureMenuScreen) {
+                || client.gui.screen() != null) {
             dumpKeyWasDown = false;
             return;
         }
