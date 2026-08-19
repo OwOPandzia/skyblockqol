@@ -1,14 +1,18 @@
 {
-	"required": true,
-	"package": "barry.skyblockqol.client.mixin",
-	"compatibilityLevel": "JAVA_25",
-	"client": [
-      "LivingEntityRendererMixin"
-	],
-	"injectors": {
-		"defaultRequire": 1
-	},
-	"overwrites": {
-		"requireAnnotations": true
-	}
+  "required": true,
+  "package": "barry.skyblockqol.client.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "LivingEntityRendererMixin",
+    "ArmorStandRendererMixin",
+    "ArmorStandModelMixin",
+    "ArmorStandRenderStateMixin",
+    "HumanoidModelMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
 }
