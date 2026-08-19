@@ -4,6 +4,7 @@
 
 #### Trapper Solver
 #### AntiBlindness
+#### Fast Cakes
 
 ## License
 
